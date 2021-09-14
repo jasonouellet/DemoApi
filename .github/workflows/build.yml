@@ -36,6 +36,19 @@ jobs:
         run: |
           New-Item -Path .\.sonar\scanner -ItemType Directory
           dotnet tool update dotnet-sonarscanner --tool-path .\.sonar\scanner
+          
+      - name: Snyk
+        # You may pin to the exact commit or the version.
+        # uses: snyk/actions@7fad562681122205233d1242c3bb39598c5393da
+        uses: snyk/actions@0.3.0
+        with:
+          # Which Snyk command to run, defaults to test
+          #command: # optional, default is test
+          # Additional arguments to pass to Snyk
+          #args: # optional
+          # Output a snyk.json file with results if running the test command
+          json: snyk.json # optional
+
       - name: Build and analyze
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
@@ -43,5 +56,5 @@ jobs:
         shell: powershell
         run: |
           .\.sonar\scanner\dotnet-sonarscanner begin /k:"demoapi" /o:"jasonouellet" /d:sonar.login="${{ secrets.SONAR_TOKEN }}" /d:sonar.host.url="https://sonarcloud.io"
-          dotnet build src/.
+          dotnet build .\src\.
           .\.sonar\scanner\dotnet-sonarscanner end /d:sonar.login="${{ secrets.SONAR_TOKEN }}"
