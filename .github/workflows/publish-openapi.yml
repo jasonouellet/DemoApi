@@ -1,0 +1,49 @@
+name: Publish OpenAPI Manifest
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  publish-openapi:
+    name: Generate and publish OpenAPI manifest
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.x'
+
+      - name: Restore tools
+        run: dotnet tool restore
+
+      - name: Build
+        run: dotnet build src/DemoApi.csproj -c Release
+
+      - name: Generate OpenAPI manifest
+        run: |
+          mkdir -p docs/openapi
+          dotnet swagger tofile \
+            --output docs/openapi/swagger.json \
+            src/bin/Release/net10.0/DemoApi.dll \
+            v1
+
+      - name: Commit and push swagger.json
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/openapi/swagger.json
+          if git diff --cached --quiet; then
+            echo "No changes to OpenAPI manifest."
+          else
+            git commit -m "chore: update OpenAPI manifest [skip ci]"
+            git push
+          fi
