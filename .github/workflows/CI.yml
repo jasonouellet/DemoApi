@@ -36,8 +36,8 @@ jobs:
           dotnet-version: '10.0.x'
       - name: Restore dependencies
         run: |
-          dotnet restore src/DemoApi.csproj
-          dotnet restore tests/DemoApi.Tests.csproj
+          dotnet restore src/DemoApi.csproj --locked-mode
+          dotnet restore tests/DemoApi.Tests.csproj --locked-mode
       - name: Build
         run: dotnet build src/DemoApi.csproj --no-restore
       - name: Test
@@ -50,7 +50,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ env.SONAR_TOKEN }}
       - name: Snyk Scan
-      - name: Snyk Scan
         if: ${{ env.SNYK_TOKEN != '' }}
         uses: snyk/actions@0.3.0
         env:
@@ -58,7 +57,7 @@ jobs:
         with:
           json: snyk.json
           command: test
->>>>>>> 7b31b19 (ci: configure Snyk dependency scanning with NuGet lock files)
+          args: --all-projects --detection-depth=4
 
   codeql:
     name: CodeQL Analysis
@@ -110,8 +109,11 @@ jobs:
       - name: Restore tools
         run: dotnet tool restore
 
+      - name: Restore dependencies
+        run: dotnet restore src/DemoApi.csproj --locked-mode
+
       - name: Build
-        run: dotnet build src/DemoApi.csproj -c Release
+        run: dotnet build src/DemoApi.csproj -c Release --no-restore
 
       - name: Generate OpenAPI manifest
         run: |
