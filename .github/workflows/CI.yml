@@ -16,6 +16,7 @@ jobs:
   ci:
     name: Continuous Integration
     runs-on: ubuntu-latest
+    if: ${{ github.event_name != 'schedule' }}
     permissions:
       contents: read
       pull-requests: write
