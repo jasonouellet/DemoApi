@@ -72,7 +72,6 @@ docker run --rm -p 8080:80 demoapi:local
 
 ## CI/CD
 
-- CI: build, test, quality/security checks
 - CI: build, test, quality/security checks, and OpenAPI manifest publish on `main`
 - CodeQL: static application security analysis
 - Dependabot workflow: automates dependency PR handling
