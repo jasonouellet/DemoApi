@@ -5,39 +5,132 @@ on:
       - main
   pull_request:
     types: [opened, synchronize, reopened]
+  workflow_dispatch:
+  schedule:
+    - cron: '40 17 * * 0'
+
+permissions:
+  contents: read
+
 jobs:
   ci:
-    name: Intégration continue
+    name: Continuous Integration
     runs-on: ubuntu-latest
+    if: ${{ github.event_name != 'schedule' }}
+    permissions:
+      contents: read
+      pull-requests: write
+      statuses: write
+    env:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         id: checkout
         with:
           fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
       - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
         with:
           dotnet-version: '10.0.x'
       - name: Restore dependencies
-        run: dotnet restore
+        run: |
+          dotnet restore src/DemoApi.csproj --locked-mode
+          dotnet restore tests/DemoApi.Tests.csproj --locked-mode
       - name: Build
-        run: dotnet build --no-restore
+        run: dotnet build src/DemoApi.csproj --no-restore
       - name: Test
-        run: dotnet test --no-build --verbosity normal
+        run: dotnet test tests/DemoApi.Tests.csproj --verbosity normal
       - name: SonarCloud Scan
-        if: ${{ secrets.SONAR_TOKEN != '' }}
-        uses: SonarSource/sonarcloud-github-action@v3
+        if: ${{ env.SONAR_TOKEN != '' }}
+        uses: SonarSource/sonarcloud-github-action@383f7e52eae3ab0510c3cb0e7d9d150bbaeab838 # v3
         id: sonarcloud
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        with:
-          projectBaseDir: ./src
-      - name: Analyse Snyk
-        if: ${{ secrets.SNYK_TOKEN != '' }}
-        uses: snyk/actions@0.3.0
+          SONAR_TOKEN: ${{ env.SONAR_TOKEN }}
+      - name: Snyk Scan
+        if: ${{ env.SNYK_TOKEN != '' }}
+        uses: snyk/actions@7fad562681122205233d1242c3bb39598c5393da # 0.3.0
         env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+          SNYK_TOKEN: ${{ env.SNYK_TOKEN }}
         with:
           json: snyk.json
+          command: test
+          args: --all-projects --detection-depth=4
+
+  codeql:
+    name: CodeQL Analysis
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [ 'csharp' ]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@b0c4fd77f6c559021d78430ec4d0d169ae74a4eb # v3
+        with:
+          languages: ${{ matrix.language }}
+
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@b0c4fd77f6c559021d78430ec4d0d169ae74a4eb # v3
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@b0c4fd77f6c559021d78430ec4d0d169ae74a4eb # v3
+
+  publish-openapi:
+    name: Publish OpenAPI Manifest
+    runs-on: ubuntu-latest
+    needs: ci
+    if: ${{ github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') }}
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore tools
+        run: dotnet tool restore
+
+      - name: Restore dependencies
+        run: dotnet restore src/DemoApi.csproj --locked-mode
+
+      - name: Build
+        run: dotnet build src/DemoApi.csproj -c Release --no-restore
+
+      - name: Generate OpenAPI manifest
+        run: |
+          mkdir -p docs/openapi
+          dotnet swagger tofile \
+            --output docs/openapi/swagger.json \
+            src/bin/Release/net10.0/DemoApi.dll \
+            v1
+
+      - name: Commit and push swagger.json
+        run: |
+          git add docs/openapi/swagger.json
+          if git diff --cached --quiet; then
+            echo "No changes to OpenAPI manifest."
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git commit -m "chore: update OpenAPI manifest [skip ci]"
+            git push
+          fi

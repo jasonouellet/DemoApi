@@ -1,0 +1,5 @@
+# Snyk policy file for repository-level security policy.
+# Keep this minimal; add ignores only with justification and expiration.
+version: v1.25.0
+ignore: {}
+patch: {}
