@@ -5,6 +5,13 @@ on:
       - main
   pull_request:
     types: [opened, synchronize, reopened]
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+  security-events: write
+
 jobs:
   ci:
     name: Intégration continue
@@ -41,3 +48,67 @@ jobs:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
           json: snyk.json
+
+  codeql:
+    name: CodeQL Analysis
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [ 'csharp' ]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v3
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+
+  publish-openapi:
+    name: Publish OpenAPI Manifest
+    runs-on: ubuntu-latest
+    needs: ci
+    if: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore tools
+        run: dotnet tool restore
+
+      - name: Build
+        run: dotnet build src/DemoApi.csproj -c Release
+
+      - name: Generate OpenAPI manifest
+        run: |
+          mkdir -p docs/openapi
+          dotnet swagger tofile \
+            --output docs/openapi/swagger.json \
+            src/bin/Release/net10.0/DemoApi.dll \
+            v1
+
+      - name: Commit and push swagger.json
+        run: |
+          git add docs/openapi/swagger.json
+          if git diff --cached --quiet; then
+            echo "No changes to OpenAPI manifest."
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git commit -m "chore: update OpenAPI manifest [skip ci]"
+            git push
+          fi
