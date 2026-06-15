@@ -4,6 +4,7 @@ WORKDIR /app
 EXPOSE 80
 
 FROM mcr.microsoft.com/dotnet/sdk:10.0-alpine AS build
+RUN apk update && apk upgrade && rm -rf /var/cache/apk/*
 WORKDIR /src
 COPY ["DemoApi.csproj", "./"]
 RUN dotnet restore "./DemoApi.csproj"

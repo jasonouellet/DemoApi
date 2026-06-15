@@ -15,11 +15,14 @@ and this project follows Semantic Versioning.
 * OpenAPI manifest publish integrated into the main CI workflow.
 * Basic project README with setup, run, test, Docker, and CI sections.
 * Security policy content with reporting process and response expectations.
+* NuGet lock files (`packages.lock.json`) for dependency tracking and reproducible builds.
 
 ### Changed
 
 * CI workflow now centralizes build, test, security checks, and OpenAPI publish.
 * CI job labels normalized in English.
+* Docker image security: patched Alpine Linux base images with `apk upgrade` to fix CVEs.
+* Snyk dependency scanning: now uses NuGet lock files instead of direct .csproj scanning for improved accuracy.
 
 ### Removed
 
