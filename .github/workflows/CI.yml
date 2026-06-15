@@ -50,13 +50,15 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ env.SONAR_TOKEN }}
       - name: Snyk Scan
+      - name: Snyk Scan
         if: ${{ env.SNYK_TOKEN != '' }}
         uses: snyk/actions@0.3.0
         env:
           SNYK_TOKEN: ${{ env.SNYK_TOKEN }}
         with:
           json: snyk.json
-          args: --file=src/DemoApi.csproj --package-manager=nuget
+          command: test
+>>>>>>> 7b31b19 (ci: configure Snyk dependency scanning with NuGet lock files)
 
   codeql:
     name: CodeQL Analysis
