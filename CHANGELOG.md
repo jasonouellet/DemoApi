@@ -22,7 +22,9 @@ and this project follows Semantic Versioning.
 * CI workflow now centralizes build, test, security checks, and OpenAPI publish.
 * CI job labels normalized in English.
 * Docker image security: patched Alpine Linux base images with `apk upgrade` to fix CVEs.
-* Snyk dependency scanning: now uses NuGet lock files instead of direct .csproj scanning for improved accuracy.
+* CI restores now enforce NuGet lock files with `--locked-mode` for API and test projects.
+* OpenAPI publish job now restores dependencies in locked mode and builds with `--no-restore`.
+* Docker build now copies `packages.lock.json`, restores in locked mode, and uses `--no-restore` for build/publish.
 
 ### Removed
 
