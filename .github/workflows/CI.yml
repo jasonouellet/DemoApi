@@ -49,8 +49,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ env.SONAR_TOKEN }}
-        with:
-          projectBaseDir: ./src
       - name: Snyk Scan
         if: ${{ env.SNYK_TOKEN != '' }}
         uses: snyk/actions@0.3.0
