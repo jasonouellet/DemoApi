@@ -1,9 +1,18 @@
 version: 2
-updates: 
-  # Enable version updates for nuget 
+updates:
+  # Enable version updates for NuGet dependencies in src and tests.
   - package-ecosystem: "nuget"
-    directory: "src/"
-    interval: "daily"
+    directory: "/"
+    schedule:
+      interval: "daily"
+  - package-ecosystem: "npm"
+    directory: "/src"
+    schedule:
+      interval: "weekly"
+      day: "friday"
+      time: "23:30"
+      timezone: "America/Toronto"
   - package-ecosystem: "github-actions"
     directory: "/"
-    interval: "daily"
+    schedule:
+      interval: "daily"
