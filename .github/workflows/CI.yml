@@ -51,7 +51,7 @@ jobs:
           SONAR_TOKEN: ${{ env.SONAR_TOKEN }}
       - name: Snyk Scan
         if: ${{ env.SNYK_TOKEN != '' }}
-        uses: snyk/actions@7fad562681122205233d1242c3bb39598c5393da # 0.3.0
+        uses: snyk/actions@9adf32b1121593767fc3c057af55b55db032dc04 # 1.0.0
         env:
           SNYK_TOKEN: ${{ env.SNYK_TOKEN }}
         with:
